@@ -49,7 +49,8 @@ class Evaluator:
         self.metrics_by_key = OrderedDict()
 
         if config.dataset == "wikispeedia":
-            harmonic_numbers = torch.arange(n_node, device=config.device).float() + 1
+            harmonic_numbers = torch.arange(
+                n_node, device=config.device).float() + 1
             harmonic_numbers = 1.0 / harmonic_numbers
             harmonic_numbers = torch.cumsum(harmonic_numbers, dim=0)
             self.harmonic_numbers = harmonic_numbers  # CAREFUL: indexed from 0
@@ -70,7 +71,8 @@ class Evaluator:
 
         if self.config.dataset == "wikispeedia":
             self.metrics_by_key = OrderedDict()
-            metrics_by_key = ["precision_top1", "precision_top5", "target2_acc", "target_rank"]
+            metrics_by_key = ["precision_top1",
+                              "precision_top5", "target2_acc", "target_rank"]
             for m in metrics_by_key:
                 self.metrics_by_key[m] = defaultdict(lambda: Metric())
 
@@ -93,7 +95,8 @@ class Evaluator:
                 if config.rw_edge_weight_see_number_step or config.rw_expected_steps:
                     if config.use_shortest_path_distance:
                         number_steps = (
-                            trajectories.leg_shortest_lengths(trajectory_idx).float() * 1.1
+                            trajectories.leg_shortest_lengths(
+                                trajectory_idx).float() * 1.1
                         ).long()
                     else:
                         number_steps = trajectories.leg_lengths(trajectory_idx)
@@ -150,10 +153,12 @@ class Evaluator:
     def to_string(self):
         metrics, metrics_by_key = self.get_metrics()
         out = []
-        out.append(tabulate(metrics.items(), headers=["Metric", "Value"], tablefmt="github"))
+        out.append(tabulate(metrics.items(), headers=[
+                   "Metric", "Value"], tablefmt="github"))
 
         for metric, values in metrics_by_key.items():
-            out.append(metric + "\n" + tabulate(values.items(), tablefmt="github"))
+            out.append(metric + "\n" +
+                       tabulate(values.items(), tablefmt="github"))
 
         return "\n\n".join(out)
 
@@ -180,12 +185,15 @@ class Evaluator:
 
         target_distributions = observations[targets]
 
-        target_probabilities = compute_target_probability(target_distributions, predictions)
+        target_probabilities = compute_target_probability(
+            target_distributions, predictions)
         self.metrics["target_probability"].add_all(target_probabilities)
 
-        top1_contains_target = compute_topk_contains_target(target_distributions, predictions, k=1)
+        top1_contains_target = compute_topk_contains_target(
+            target_distributions, predictions, k=1)
         self.metrics["precision_top1"].add_all(top1_contains_target)
-        top5_contains_target = compute_topk_contains_target(target_distributions, predictions, k=5)
+        top5_contains_target = compute_topk_contains_target(
+            target_distributions, predictions, k=5)
         self.metrics["precision_top5"].add_all(top5_contains_target)
 
         assert trajectories.has_traversed_edges
@@ -193,7 +201,9 @@ class Evaluator:
 
         # [n_pred, n_node]
         _, chosen_edge_at_each_node = scatter_max(
-            rw_weights + torch.rand_like(rw_weights) * noise_level, graph.senders, fill_value=-1
+            # , fill_value=-1
+            rw_weights + torch.rand_like(rw_weights) * \
+            noise_level, graph.senders
         )
         if rw_non_backtracking:
             nb_rw_graph = graph.update(
@@ -201,10 +211,11 @@ class Evaluator:
             ).non_backtracking_random_walk_graph
             # [n_edge, n_pred]
             _, chosen_hyperedge_at_each_edge = scatter_max(
-                nb_rw_graph.edges + torch.rand_like(nb_rw_graph.edges) * noise_level,
+                nb_rw_graph.edges +
+                torch.rand_like(nb_rw_graph.edges) * noise_level,
                 nb_rw_graph.senders,
                 dim=0,
-                fill_value=-1000,
+                # fill_value=-1000,
             )
             chosen_edge_at_each_edge = nb_rw_graph.receivers[chosen_hyperedge_at_each_edge]
             # [n_pred, n_edge]
@@ -219,7 +230,8 @@ class Evaluator:
                 ]
             )
             # remove consecutive duplicate
-            duplicate_mask = torch.zeros_like(traversed_edges, dtype=torch.uint8)
+            duplicate_mask = torch.zeros_like(
+                traversed_edges, dtype=torch.uint8)
             duplicate_mask[1:] = traversed_edges[:-1] == traversed_edges[1:]
             traversed_edges = traversed_edges[~duplicate_mask]
 
@@ -228,19 +240,23 @@ class Evaluator:
             """ choice accuracy """
 
             if rw_non_backtracking:
-                chosen_edges = torch.zeros_like(traversed_edges, dtype=torch.long)
+                chosen_edges = torch.zeros_like(
+                    traversed_edges, dtype=torch.long)
                 first_node = nodes_where_decide[0]
                 chosen_edges[0] = chosen_edge_at_each_node[pred_id, first_node]
-                chosen_edges[1:] = chosen_edge_at_each_edge[pred_id, traversed_edges[:-1]]
+                chosen_edges[1:] = chosen_edge_at_each_edge[pred_id,
+                                                            traversed_edges[:-1]]
             else:
-                chosen_edges = chosen_edge_at_each_node[pred_id, nodes_where_decide]
+                chosen_edges = chosen_edge_at_each_node[pred_id,
+                                                        nodes_where_decide]
 
             correct_choices = (traversed_edges == chosen_edges).float()
             self.metrics["choice_accuracy"].add_all(correct_choices)
 
             deg3_mask = graph.out_degree_counts[nodes_where_decide] > 2
             deg3_mask[0] = 1
-            self.metrics["choice_accuracy_deg3"].add_all(correct_choices[deg3_mask])
+            self.metrics["choice_accuracy_deg3"].add_all(
+                correct_choices[deg3_mask])
 
             """NLL computation"""
 
@@ -251,7 +267,8 @@ class Evaluator:
                 nb_rw_graph = rw_graph.non_backtracking_random_walk_graph
 
                 traversed_edges_weights = torch.zeros(len(traversed_edges))
-                traversed_edges_weights[0] = rw_weights[pred_id, traversed_edges[0]]
+                traversed_edges_weights[0] = rw_weights[pred_id,
+                                                        traversed_edges[0]]
                 for i, (s, r) in enumerate(zip(traversed_edges[:-1], traversed_edges[1:])):
                     traversed_edges_weights[i + 1] = nb_rw_graph.edge(s, r)
 
@@ -259,21 +276,25 @@ class Evaluator:
             self.metrics["path_nll"].add(neg_log_weights.sum().item())
             deg3_mask = graph.out_degree_counts[graph.senders[traversed_edges]] > 2
             deg3_mask[0] = 1
-            self.metrics["path_nll_deg3"].add(neg_log_weights[deg3_mask].sum().item())
+            self.metrics["path_nll_deg3"].add(
+                neg_log_weights[deg3_mask].sum().item())
 
         if self.config.dataset == "wikispeedia":
             jump_lengths = targets - starts
 
             """top k by jump"""
-            self.update_metrics_by_keys("precision_top1", jump_lengths, top1_contains_target)
-            self.update_metrics_by_keys("precision_top5", jump_lengths, top5_contains_target)
+            self.update_metrics_by_keys(
+                "precision_top1", jump_lengths, top1_contains_target)
+            self.update_metrics_by_keys(
+                "precision_top5", jump_lengths, top5_contains_target)
 
             """cumulative reciprocal rank"""
             # assumes only one target per observations
             target_nodes = observations[targets].nonzero()[:, 1]
             target_ranks = compute_rank(predictions, target_nodes)
             self.update_metrics_by_keys(
-                "target_rank", jump_lengths, self.harmonic_numbers[target_ranks - 1]
+                "target_rank", jump_lengths, self.harmonic_numbers[target_ranks.type(
+                    torch.LongTensor) - 1]
             )
 
             """West target accuracy"""
@@ -286,7 +307,8 @@ class Evaluator:
                 trajectories.pairwise_node_distances,
             )
 
-            self.update_metrics_by_keys("target2_acc", jump_lengths, target2_acc)
+            self.update_metrics_by_keys(
+                "target2_acc", jump_lengths, target2_acc)
 
 
 def target2_accuracy(
@@ -313,7 +335,8 @@ def target2_accuracy(
     # n_pred x num_nodes
     distance_from_starts_to_every_nodes = pairwise_node_distances[start_nodes, :]
     # n_pred x num_nodes
-    right_distance_mask = distance_from_starts_to_every_nodes == distance_start_target.unsqueeze(1)
+    right_distance_mask = distance_from_starts_to_every_nodes == distance_start_target.unsqueeze(
+        1)
 
     # n_pred x num_nodes
     possible_targets_mask = right_distance_mask & given_as_target.unsqueeze(0)
@@ -377,8 +400,10 @@ def compute_topk_contains_target(target_distributions, predicted_distributions, 
     """
     device = predicted_distributions.device
     _, topk_nodes = torch.topk(predicted_distributions, k)
-    indices = torch.arange(len(predicted_distributions), device=device, dtype=torch.long)
-    indices = indices.view(-1, 1).repeat(1, k)  # [[0, ... 0], [1, ..., 1], ....]
+    indices = torch.arange(len(predicted_distributions),
+                           device=device, dtype=torch.long)
+    # [[0, ... 0], [1, ..., 1], ....]
+    indices = indices.view(-1, 1).repeat(1, k)
     topk_target_values = target_distributions[indices, topk_nodes]
     return (topk_target_values > 0).any(dim=1)
 
@@ -402,10 +427,11 @@ def compute_rank(predictions, targets):
     range_ = torch.arange(n_pred, device=predictions.device, dtype=torch.long)
 
     proba_targets = predictions[range_, targets]
-    target_rank_upper = (proba_targets.unsqueeze(1) < predictions).long().sum(dim=1) + 1
-    target_rank_lower = (proba_targets.unsqueeze(1) <= predictions).long().sum(dim=1)
+    target_rank_upper = (proba_targets.unsqueeze(
+        1) < predictions).long().sum(dim=1) + 1
+    target_rank_lower = (proba_targets.unsqueeze(1) <=
+                         predictions).long().sum(dim=1)
 
     # break tighs evenly by taking the mean rank
     target_rank = (target_rank_upper + target_rank_lower) / 2
     return target_rank
-

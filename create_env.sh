@@ -38,7 +38,7 @@ conda install -y pytorch torchvision cudatoolkit=9.0 -c pytorch
 export CUDA_HOME=/usr/local/cuda-9.0
 
 # PyTorch
-pip install torch-scatter torch-sparse torch-cluster torch-spline-conv torch-geometric
+#pip install torch-scatter torch-sparse torch-cluster torch-spline-conv torch-geometric
 
 # PyGSP
 pip install git+https://github.com/epfl-lts2/pygsp
@@ -47,11 +47,11 @@ pip install git+https://github.com/epfl-lts2/pygsp
 # Scatter library for PyTorch
 # if installation fails on macOS
 # see https://rusty1s.github.io/pytorch_geometric/build/html/notes/installation.html#c-cuda-extensions-on-macos
-pip install git+https://github.com/rusty1s/pytorch_scatter
-pip install git+https://github.com/rusty1s/pytorch_sparse
-pip install git+https://github.com/rusty1s/pytorch_cluster
-pip install git+https://github.com/rusty1s/pytorch_spline_conv
-pip install git+https://github.com/rusty1s/pytorch_geometric
+#pip install git+https://github.com/rusty1s/pytorch_scatter
+#pip install git+https://github.com/rusty1s/pytorch_sparse
+#pip install git+https://github.com/rusty1s/pytorch_cluster
+#pip install git+https://github.com/rusty1s/pytorch_spline_conv
+#pip install git+https://github.com/rusty1s/pytorch_geometric
 
 source deactivate
 

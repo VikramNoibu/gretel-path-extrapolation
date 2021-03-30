@@ -6,10 +6,10 @@ import sys
 import time
 
 import numpy as np
-import tensorboardX
+from tensorboardX import SummaryWriter
 import torch
 from termcolor import colored
-from typing import Optional, List, Callable
+from typing import Optional, List, Callable, Tuple
 
 from config import Config, config_generator
 from graph import Graph
@@ -32,7 +32,7 @@ def load_tensor(device: torch.device, path: str, *subpaths) -> Optional[torch.Te
 
 def load_data(
     config: Config
-) -> (Graph, List[Trajectories], Optional[torch.Tensor], Optional[torch.Tensor]):
+) -> Tuple[Graph, List[Trajectories], Optional[torch.Tensor], Optional[torch.Tensor]]:
     """Read data in config.workspace / config.input_directory
 
     Args:
@@ -57,8 +57,10 @@ def load_data(
         num_nodes=graph.n_node,
     )
 
-    pairwise_node_features = load_tensor(config.device, input_dir, "pairwise_node_features.pt")
-    pairwise_distances = load_tensor(config.device, input_dir, "shortest-path-distance-matrix.pt")
+    pairwise_node_features = load_tensor(
+        config.device, input_dir, "pairwise_node_features.pt")
+    pairwise_distances = load_tensor(
+        config.device, input_dir, "shortest-path-distance-matrix.pt")
 
     trajectories.pairwise_node_distances = pairwise_distances
 
@@ -83,8 +85,10 @@ def load_data(
 
     if config.overfit1:
         config.batch_size = 1
-        id_ = (trajectories.lengths == config.number_observations + 1).nonzero()[0]
-        print(f"Overfit on trajectory {id_.item()} of length {trajectories.lengths[id_].item()}")
+        id_ = (trajectories.lengths ==
+               config.number_observations + 1).nonzero()[0]
+        print(
+            f"Overfit on trajectory {id_.item()} of length {trajectories.lengths[id_].item()}")
         train_mask = torch.zeros_like(valid_trajectories_mask)
         train_mask[id_] = 1
         test_mask = valid_mask = train_mask
@@ -106,11 +110,12 @@ def load_data(
         train_mask = torch.zeros_like(valid_trajectories_mask)
         train_mask[train_idx] = 1
 
-        valid_idx = valid_trajectories_idx[n_train : n_train + n_valid]
+        valid_idx = valid_trajectories_idx[n_train: n_train + n_valid]
         valid_mask = torch.zeros_like(valid_trajectories_mask)
         valid_mask[valid_idx] = 1
 
-        test_idx = valid_trajectories_idx[n_train + n_valid : n_train + n_valid + n_test]
+        test_idx = valid_trajectories_idx[n_train +
+                                          n_valid: n_train + n_valid + n_test]
         test_mask = torch.zeros_like(valid_trajectories_mask)
         test_mask[test_idx] = 1
 
@@ -122,10 +127,11 @@ def load_data(
     return (graph, trajectories, pairwise_node_features, pairwise_distances)
 
 
-def load_wiki_data(config: Config) -> (Optional[torch.Tensor], Optional[torch.Tensor]):
+def load_wiki_data(config: Config) -> Tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
     """Load wikipedia specific data"""
     input_dir = os.path.join(config.workspace, config.input_directory)
-    given_as_target = load_tensor(config.device, input_dir, "given_as_target.pt")
+    given_as_target = load_tensor(
+        config.device, input_dir, "given_as_target.pt")
     siblings = load_tensor(config.device, input_dir, "siblings.pt")
     return given_as_target, siblings
 
@@ -216,7 +222,8 @@ def compute_loss(
         log_rw_weights = -(rw_weights + 1e-20).log()
         for pred_id in range(len(starts)):
             for jump_id in range(starts[pred_id], targets[pred_id]):
-                traversed_edges = trajectories.traversed_edges(trajectory_idx, jump_id)
+                traversed_edges = trajectories.traversed_edges(
+                    trajectory_idx, jump_id)
                 loss += log_rw_weights[pred_id, traversed_edges].sum()
         return loss
     else:
@@ -226,7 +233,8 @@ def compute_loss(
 def create_optimizer(params, config: Config) -> torch.optim.Optimizer:
     """Create the torch optimizer, config.optimizer can be SGD, Adam or RMSprop"""
     if config.optimizer == "SGD":
-        optimizer = torch.optim.SGD(params, lr=config.lr, momentum=config.momentum)
+        optimizer = torch.optim.SGD(
+            params, lr=config.lr, momentum=config.momentum)
     elif config.optimizer == "Adam":
         optimizer = torch.optim.Adam(params, lr=config.lr)
     elif config.optimizer == "RMSprop":
@@ -289,7 +297,8 @@ def create_model(graph: Graph, cross_features: Optional[torch.Tensor], config: C
 
     double_way_diffusion = 2 if config.double_way_diffusion else 1
     d_in_direction_mlp = (
-        2 * config.number_observations * config.diffusion_hidden_dimension * double_way_diffusion
+        2 * config.number_observations *
+        config.diffusion_hidden_dimension * double_way_diffusion
         + 2 * d_node
         + d_edge
         + (d_node if config.latent_transformer_see_target else 0)
@@ -324,14 +333,16 @@ def train_epoch(
     print_cum_loss = 0.0
     print_num_preds = 0
     print_time = time.time()
-    print_every = len(train_trajectories) // config.batch_size // config.print_per_epoch
+    print_every = len(
+        train_trajectories) // config.batch_size // config.print_per_epoch
 
     trajectories_shuffle_indices = np.arange(len(train_trajectories))
     if config.shuffle_samples:
         np.random.shuffle(trajectories_shuffle_indices)
 
     for iteration, batch_start in enumerate(
-        range(0, len(trajectories_shuffle_indices) - config.batch_size + 1, config.batch_size)
+        range(0, len(trajectories_shuffle_indices) -
+              config.batch_size + 1, config.batch_size)
     ):
         optimizer.zero_grad()
         loss = torch.tensor(0.0, device=config.device)
@@ -345,10 +356,12 @@ def train_epoch(
             if config.rw_edge_weight_see_number_step or config.rw_expected_steps:
                 if config.use_shortest_path_distance:
                     number_steps = (
-                        train_trajectories.leg_shortest_lengths(trajectory_idx).float() * 1.1
+                        train_trajectories.leg_shortest_lengths(
+                            trajectory_idx).float() * 1.1
                     ).long()
                 else:
-                    number_steps = train_trajectories.leg_lengths(trajectory_idx)
+                    number_steps = train_trajectories.leg_lengths(
+                        trajectory_idx)
 
             observed, starts, targets = generate_masks(
                 trajectory_length=observations.shape[0],
@@ -396,14 +409,16 @@ def train_epoch(
         if (iteration + 1) % print_every == 0:
             print_loss = print_cum_loss / print_every
             print_loss /= print_num_preds
-            pred_per_second = 1.0 * print_num_preds / (time.time() - print_time)
+            pred_per_second = 1.0 * print_num_preds / \
+                (time.time() - print_time)
 
             print_cum_loss = 0.0
             print_num_preds = 0
             print_time = time.time()
 
             progress_percent = int(
-                100.0 * ((iteration + 1) // print_every) / config.print_per_epoch
+                100.0 * ((iteration + 1) // print_every) /
+                config.print_per_epoch
             )
 
             print(
@@ -428,19 +443,37 @@ def evaluate(
 
 
 def main():
+    print("BEGIN...")
     parser = argparse.ArgumentParser()
     parser.add_argument("config_file")
     parser.add_argument("--name")
+    parser.add_argument("--bs")
+    parser.add_argument("--lr")
+    parser.add_argument("--loss")
+
     args = parser.parse_args()
 
     # load configuration
+    writer = SummaryWriter()
     config = Config()
     config.load_from_file(args.config_file)
+    # Hyperparameter logging
+    if 'bs' in args:
+        config.batch_size = int(args.bs)
+    if 'lr' in args:
+        config.lr = float(args.lr)
+    if 'loss' in args:
+        config.loss = args.loss
+    writer.add_scalar('batch_size', config.batch_size)
+    writer.add_scalar('lr', config.lr)
+    writer.add_text('loss_func', config.loss)
 
     graph, trajectories, pairwise_node_features, _ = load_data(config)
+    print("loaded data...")
     train_trajectories, valid_trajectories, test_trajectories = trajectories
     use_validation_set = len(valid_trajectories) > 0
     graph = graph.to(config.device)
+    print("loaded device...")
 
     given_as_target, siblings_nodes = None, None
     if config.dataset == "wikispeedia":
@@ -465,13 +498,15 @@ def main():
     torch.manual_seed(config.seed)
 
     if config.enable_checkpointing:
-        chkpt_dir = os.path.join(config.workspace, config.checkpoint_directory, config.name)
+        chkpt_dir = os.path.join(
+            config.workspace, config.checkpoint_directory, config.name)
         os.makedirs(chkpt_dir, exist_ok=True)
         print(f"Checkpoints will be saved in [{chkpt_dir}]")
 
     d_node = graph.nodes.shape[1] if graph.nodes is not None else 0
     d_edge = graph.edges.shape[1] if graph.edges is not None else 0
-    print(f"Number of node features {d_node}. Number of edge features {d_edge}")
+    print(
+        f"Number of node features {d_node}. Number of edge features {d_edge}")
 
     model = create_model(graph, pairwise_node_features, config)
     model = model.to(config.device)
@@ -502,7 +537,8 @@ def main():
         )
 
     if config.compute_baseline:
-        display_baseline(config, graph, train_trajectories, test_trajectories, create_evaluator())
+        display_baseline(config, graph, train_trajectories,
+                         test_trajectories, create_evaluator())
 
     graph = graph.add_self_loops(
         degree_zero_only=config.self_loop_deadend_only, edge_value=config.self_loop_weight
@@ -532,7 +568,8 @@ def main():
         print(f"\n=== EPOCH {epoch} ===")
 
         model.train()
-        train_epoch(model, graph, optimizer, config, train_trajectories, pairwise_node_features)
+        train_epoch(model, graph, optimizer, config,
+                    train_trajectories, pairwise_node_features)
 
         # VALID and TEST metrics computation
         test_evaluator = evaluate(
@@ -543,6 +580,14 @@ def main():
             create_evaluator,
             dataset="TEST",
         )
+        writer.add_scalar(
+            'precision_top1', test_evaluator.metrics['precision_top1'].mean(), epoch)
+        writer.add_scalar(
+            'precision_top5', test_evaluator.metrics['precision_top5'].mean(), epoch)
+        writer.add_scalar(
+            'target_p', test_evaluator.metrics['target_probability'].mean(), epoch)
+        writer.add_scalar(
+            'choice_acc', test_evaluator.metrics['choice_accuracy'].mean(), epoch)
 
         valid_evaluator = None
         if use_validation_set:
@@ -557,7 +602,8 @@ def main():
 
         if config.enable_checkpointing and epoch % config.chechpoint_every_num_epoch == 0:
             print("Checkpointing...")
-            directory = os.path.join(config.workspace, config.checkpoint_directory, config.name)
+            directory = os.path.join(
+                config.workspace, config.checkpoint_directory, config.name)
             chkpt_file = os.path.join(directory, f"{epoch:04d}.pt")
             torch.save(
                 {

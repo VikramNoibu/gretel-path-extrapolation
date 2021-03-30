@@ -3,13 +3,13 @@
 [data]
 
 name = noibu
-workspace = .
+workspace = ./data
 dataset = noibu
-input_directory = data
+input_directory = simple
 max_trajectory_length = 50
-min_trajectory_length = 3
+min_trajectory_length = 11
 
-k_closest_nodes = 2
+;k_closest_nodes = 2
 extract_coord_features = false
 
 [training]
@@ -23,9 +23,11 @@ loss = nll_loss
 ; device can be cpu or cuda:0
 device = cuda:0
 
-lr = .1
-momentum = 0.5
+lr = .025
+;THIS
+momentum = 0.9
 batch_size = 10
+;THIS
 
 ; train and test only on the first trajectory (requires batch_size=1)
 overfit1 = False
@@ -34,18 +36,22 @@ shuffle_samples = True
 number_epoch = 5
 seed = 0
 train_test_ratio = 0.8/0.2
-patience = 10
+patience = 2
 
 [model]
 
-number_observations = 4
+number_observations = 10
+;THIS
 self_loop_deadend_only = true
 self_loop_weight = 0.01
-diffusion_k_hops = 5
+diffusion_k_hops = 1
+;THIS
 diffusion_hidden_dimension = 1
-parametrized_diffusion = false
+parametrized_diffusion = true
+;THIS
 ; next, destination, start_to_target
-target_prediction = start_to_target
+target_prediction = next
+;THIS
 
 latent_transformer_see_target = false
 

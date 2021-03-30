@@ -8,7 +8,7 @@ import numpy as np
 import pygsp
 import scipy
 import torch
-from typing import Union, List
+from typing import Union, List, Tuple
 from torch_scatter import scatter_add, scatter_max
 import matplotlib as mpl
 
@@ -111,6 +111,7 @@ class Graph:
         Returns:
             torch.Tensor: [n_node, ]
         """
+
         return scatter_add(
             src=torch.ones(
                 self.senders.shape, dtype=torch.long, device=self.device),
@@ -120,7 +121,7 @@ class Graph:
 
     @property
     def pairwise_distances(self) -> torch.Tensor:
-        """Compute pairwise distance (number of edges) between all pair of nodes
+        """ Compute pairwise distance (number of edges) between all pair of nodes
         Uses NetworkX shortest path algorithm, very slow for big graph.
         Caches the results.
 
@@ -256,7 +257,7 @@ class Graph:
 
         Returns:
             torch.Tensor: new value on the nodes
-        """
+           """
 
         assert node_signal.shape[0] == self.n_node
         assert self.edges is not None and \
@@ -325,7 +326,8 @@ class Graph:
             index=self.senders,
             dim=0,
             dim_size=self.n_node,
-            fill_value=-1e20)
+            # fill_value=-1e20
+        )
         shifted_weights = self.edges - max_out_weight_per_node[self.senders]
 
         exp_weights = shifted_weights.exp()
@@ -455,7 +457,7 @@ class Graph:
         return node_signal
 
     def compute_non_backtracking_edges(
-            self) -> (torch.LongTensor, torch.LongTensor):
+            self) -> Tuple[torch.LongTensor, torch.LongTensor]:
         """Compute non backtracking possible edge transitions indices
 
         We cache `edge_senders` and `edge_receivers` to recompute for different weights
@@ -496,8 +498,7 @@ class Graph:
             assert_allclose(
                 self.out_degree,
                 1.,
-                message=
-                "Graph to be transformed in non backtracking random walk graph should be a random walk graph"
+                message="Graph to be transformed in non backtracking random walk graph should be a random walk graph"
             )
             edge_weights = self.edges[edge_receivers]
 
@@ -615,7 +616,8 @@ class Graph:
             ax=ax)
 
         # plot distributions
-        transparent_colors = [mpl.colors.to_hex(mpl.colors.to_rgba(c, alpha=.5), keep_alpha=True) for c in colors]
+        transparent_colors = [mpl.colors.to_hex(mpl.colors.to_rgba(
+            c, alpha=.5), keep_alpha=True) for c in colors]
 
         self.pygsp.plotting['normalize_intercept'] = 0.
         for distribution, color in zip(distributions, transparent_colors):
@@ -953,6 +955,6 @@ class Graph:
                 raise ValueError("Graph `receivers` should be 1D")
 
             if self.edges.shape[0] != self.n_edge or \
-                self.senders.shape[0] != self.n_edge or \
-                self.receivers.shape[0] != self.n_edge:
+                    self.senders.shape[0] != self.n_edge or \
+                    self.receivers.shape[0] != self.n_edge:
                 raise ValueError(f"Incorrect Graph `edges` shape")
