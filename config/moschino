@@ -4,10 +4,10 @@
 
 name = noibu
 workspace = ./data
-dataset = noibu
-input_directory = simple
-max_trajectory_length = 50
-min_trajectory_length = 11
+dataset = moschino
+input_directory = moschino
+max_trajectory_length = 15
+min_trajectory_length = 7
 
 ;k_closest_nodes = 2
 extract_coord_features = false
@@ -40,7 +40,7 @@ patience = 2
 
 [model]
 
-number_observations = 10
+number_observations = 6
 ;THIS
 self_loop_deadend_only = true
 self_loop_weight = 0.01
@@ -50,7 +50,7 @@ diffusion_hidden_dimension = 1
 parametrized_diffusion = true
 ;THIS -- true is good
 ; next, target, start_to_target
-target_prediction = target
+target_prediction = next
 ;THIS
 
 latent_transformer_see_target = false

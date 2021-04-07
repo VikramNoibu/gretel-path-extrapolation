@@ -44,13 +44,13 @@ number_observations = 10
 ;THIS
 self_loop_deadend_only = true
 self_loop_weight = 0.01
-diffusion_k_hops = 2
-;THIS 1, 2 are good
+diffusion_k_hops = 1
+;THIS
 diffusion_hidden_dimension = 1
 parametrized_diffusion = true
-;THIS -- true is good
-; next, target, start_to_target
-target_prediction = target
+;THIS
+; next, destination, start_to_target
+target_prediction = next
 ;THIS
 
 latent_transformer_see_target = false
