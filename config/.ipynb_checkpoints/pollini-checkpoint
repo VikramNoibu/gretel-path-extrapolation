@@ -2,12 +2,12 @@
 
 [data]
 
-name = moschino
+name = pollini
 workspace = ./data
-dataset = moschino
-input_directory = moschino
-max_trajectory_length = 15
-min_trajectory_length = 7
+dataset = pollini
+input_directory = pollini
+max_trajectory_length = 50
+min_trajectory_length = 11
 
 ;k_closest_nodes = 2
 extract_coord_features = false
@@ -33,14 +33,14 @@ batch_size = 10
 overfit1 = False
 
 shuffle_samples = True
-number_epoch = 5
+number_epoch = 10
 seed = 0
 train_test_ratio = 0.8/0.2
 patience = 2
 
 [model]
 
-number_observations = 6
+number_observations = 10
 ;THIS
 self_loop_deadend_only = true
 self_loop_weight = 0.01
@@ -50,7 +50,7 @@ diffusion_hidden_dimension = 1
 parametrized_diffusion = true
 ;THIS -- true is good
 ; next, target, start_to_target
-target_prediction = next
+target_prediction = target
 ;THIS
 
 latent_transformer_see_target = false
@@ -73,4 +73,4 @@ compute_baseline = false
 enable_checkpointing = True
 checkpoint_directory = chkpt
 chechpoint_every_num_epoch = 1
-restore_from_checkpoint = true
+restore_from_checkpoint = false

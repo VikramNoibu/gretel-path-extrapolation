@@ -73,13 +73,13 @@ def load_data(
     valid_trajectories_idx = valid_trajectories_mask.nonzero()[:, 0]
     valid_lengths = trajectories.lengths[valid_trajectories_idx]
 
-    #print("number of trajectories: ", len(trajectories))
-    # print(
-    #    f"number of valid trajectories (length in [{config.min_trajectory_length}, {config.max_trajectory_length}]): {len(valid_trajectories_idx)}"
-    # )
-    # print(
-    #    f"trajectories length: min {valid_lengths.min()} | max {valid_lengths.max()} | mean {valid_lengths.float().mean():.2f}"
-    # )
+    print("number of trajectories: ", len(trajectories))
+    print(
+        f"number of valid trajectories (length in [{config.min_trajectory_length}, {config.max_trajectory_length}]): {len(valid_trajectories_idx)}"
+    )
+    print(
+        f"trajectories length: min {valid_lengths.min()} | max {valid_lengths.max()} | mean {valid_lengths.float().mean():.2f}"
+    )
 
     trajectories = trajectories.to(config.device)
 
@@ -94,7 +94,7 @@ def load_data(
         test_mask = valid_mask = train_mask
 
     else:
-        #print(f"split train/(valid)?/test {config.train_test_ratio}")
+        print(f"split train/(valid)?/test {config.train_test_ratio}")
         proportions = list(map(float, config.train_test_ratio.split("/")))
         if len(proportions) == 2:
             train_prop, test_prop = proportions
@@ -283,7 +283,7 @@ def create_model(graph: Graph, cross_features: Optional[torch.Tensor], config: C
 
     d_node = dimension(graph.nodes, "graph.nodes")
     d_edge = dimension(graph.edges, "graph.edges")
-    d_cross = cross_features.shape[1] if cross_features is not None else 0
+    d_cross = cross_features.shape[2] if cross_features is not None else 0
 
     diffusion_graph_transformer = None
     if config.initial_edge_transformer and (d_node > 0 or d_edge > 0):
@@ -434,7 +434,7 @@ def evaluate(
     evaluator_creator: Callable[[], Evaluator],
     dataset: str = "TRAIN",
 ) -> Evaluator:
-    #print(f"\n=== {dataset} ===\n")
+    print(f"\n=== {dataset} ===\n")
     model.eval()
     evaluator = evaluator_creator()
     node_acc_dist = evaluator.compute(
@@ -444,7 +444,7 @@ def evaluate(
 
 
 def main():
-    # print("BEGIN...")
+    print("BEGIN...")
     parser = argparse.ArgumentParser()
     parser.add_argument("config_file")
     parser.add_argument("--name")

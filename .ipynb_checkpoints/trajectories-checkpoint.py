@@ -158,9 +158,9 @@ class Trajectories:
         for jump in range(num_jumps):
             fr_nodes = observations[jump].nonzero().squeeze()
             to_nodes = observations[jump + 1].nonzero().squeeze()
-            # print(fr_nodes)
-            # print(to_nodes)
-            # print(self.pairwise_node_distances)
+            #print(fr_nodes)
+            #print(to_nodes)
+            #print(self.pairwise_node_distances)
             all_distances = self.pairwise_node_distances[[fr_nodes],
                                                          :][:, [to_nodes]]
             min_distances[jump] = all_distances[all_distances >= 0].min()
